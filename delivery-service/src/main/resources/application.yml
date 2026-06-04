@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME}
+    url: ${DB_URL}
+  application:
+    name: delivery-service
+  jpa:
+    hibernate:
+      ddl-auto: update
+  kafka:
+    consumer:
+      group-id: delivery-service-group
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+server:
+  port: 8082
+
+order-paid-topic: orders.events
+delivery-assigned-topic: delivery.events

@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME}
+    url: ${DB_URL}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+server:
+  port: 8081

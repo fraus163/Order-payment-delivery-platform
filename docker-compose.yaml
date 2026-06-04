@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orders
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    restart: unless-stopped
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: RtzC4iS4Qr2xbTLia0NraQ
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:9093
+    healthcheck:
+      test: kafka-topics --bootstrap-server localhost:9092 --list
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    labels:
+      amplicode.image: confluent/kafka
+  order-service:
+    image: order-service:latest
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    labels:
+      amplicode.image: springboot
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - DB_URL=jdbc:postgresql://postgres:5432/orders
+      - DB_PASSWORD=postgres
+      - DB_USERNAME=postgres
+  payment-service:
+    image: payment-service:latest
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile2
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    labels:
+      amplicode.image: springboot
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/orders
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+  delivery-service:
+    image: delivery-service:latest
+    build:
+      context: .
+      dockerfile: delivery-service/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    labels:
+      amplicode.image: springboot
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - DB_URL=jdbc:postgresql://postgres:5432/orders
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+volumes:
+  postgres_data:
+  kafka_data:
